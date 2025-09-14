@@ -283,7 +283,7 @@ local keyNames = {
     [Enum.KeyCode.LeftControl] = 'LCTRL';
     [Enum.KeyCode.RightControl] = 'RCTRL';
     [Enum.KeyCode.LeftShift] = 'LSHIFT';
-    [Enum.KeyCode.RightShift] = 'RSHIFT';
+    [Enum.KeyCode.RightControl] = 'RSHIFT';
     [Enum.UserInputType.MouseButton1] = 'MB1';
     [Enum.UserInputType.MouseButton2] = 'MB2';
     [Enum.UserInputType.MouseButton3] = 'MB3';
@@ -732,20 +732,20 @@ function library:Initialize()
     end)
 
     -- Ensure a default toggle key exists (fallback)
-    -- Normalize bad values like 'none' or non-KeyCode enum to use RightShift
+    -- Normalize bad values like 'none' or non-KeyCode enum to use RightControl
     if self.toggleKey == nil or self.toggleKey == 'none' or tostring(self.toggleKey):lower() == 'none' then
-        self.toggleKey = Enum.KeyCode.RightShift
+        self.toggleKey = Enum.KeyCode.RightControl
     else
         local ok, enumType = pcall(function() return self.toggleKey.EnumType end)
         if (not ok) or enumType ~= Enum.KeyCode then
-            self.toggleKey = Enum.KeyCode.RightShift
+            self.toggleKey = Enum.KeyCode.RightControl
         end
     end
 
     utility:Connection(inputservice.InputBegan, function(input, gpe)
         if self.hasInit then
-            -- Always allow RightShift as a fallback toggle; ignore gpe for RightShift only
-            local isFallback = input.KeyCode == Enum.KeyCode.RightShift
+            -- Always allow RightControl as a fallback toggle; ignore gpe for RightControl only
+            local isFallback = input.KeyCode == Enum.KeyCode.RightControl
             local isCustom = (input.KeyCode == self.toggleKey)
             if (not library.opening) and ((isCustom and not gpe) or isFallback) then
                 self:SetOpen(not self.open)
@@ -4052,7 +4052,7 @@ function library:Initialize()
                             elseif #inp.KeyCode.Name == 1 or table.find(whitelistedBoxKeys, inp.KeyCode) or inp.KeyCode.Name == 'Space' or inp.KeyCode.Name == 'Minus' or inp.KeyCode.Name == 'Equals' or inp.KeyCode.Name == 'Backquote' then
                                 local wlIdx = table.find(whitelistedBoxKeys, inp.KeyCode)
                                 local keyString = inp.KeyCode.Name == 'Space' and ' ' or inp.KeyCode.Name == 'Minus' and '_' or inp.KeyCode.Name == 'Equals' and '+' or inp.KeyCode.Name == 'Backquote' and '~' or wlIdx ~= nil and tostring(wlIdx-1) or inp.KeyCode.Name
-                                if not (inputservice:IsKeyDown(Enum.KeyCode.LeftShift) and not inputservice:IsKeyDown(Enum.KeyCode.RightShift)) then
+                                if not (inputservice:IsKeyDown(Enum.KeyCode.LeftShift) and not inputservice:IsKeyDown(Enum.KeyCode.RightControl)) then
                                     keyString = keyString:lower();
                                     if inp.KeyCode.Name == 'Minus' then
                                         keyString = '-'
@@ -4928,7 +4928,7 @@ function library:CreateSettingsTab(menu)
 
     refreshConfigs()
 
-    mainSection:AddBind({text = 'Open / Close', flag = 'togglebind', nomouse = true, noindicator = true, bind = Enum.KeyCode.RightShift, callback = function()
+    mainSection:AddBind({text = 'Open / Close', flag = 'togglebind', nomouse = true, noindicator = true, bind = Enum.KeyCode.RightControl, callback = function()
         library:SetOpen(not library.open)
     end});
 
