@@ -1414,6 +1414,34 @@ function library:Initialize()
             })
 
 
+            -- Per-column scroll state (so long sections can be viewed by scrolling)
+            window.columnScroll = window.columnScroll or {[1] = 0, [2] = 0}
+            window.columnMax    = window.columnMax    or {[1] = 0, [2] = 0}
+
+            -- Mouse wheel scrolling when hovering a column
+            utility:Connection(inputservice.InputChanged, function(inp)
+                if not window.open then return end
+                if inp.UserInputType ~= Enum.UserInputType.MouseWheel then return end
+
+                local delta = inp.Position.Z
+                local side
+                if utility:MouseOver(objs.columnholder1.Object) then
+                    side = 1
+                elseif utility:MouseOver(objs.columnholder2.Object) then
+                    side = 2
+                end
+
+                if side then
+                    local step = 24 -- scroll step per wheel tick
+                    local newVal = window.columnScroll[side] - (delta * step)
+                    window.columnScroll[side] = clamp(newVal, 0, math.max(0, window.columnMax[side]))
+                    if window.selectedTab then
+                        window.selectedTab:UpdateSections()
+                    end
+                end
+            end)
+
+
             objs.dragdetector = utility:Draw('Square',{
                 Size = newUDim2(1,0,1,0);
                 Parent = objs.midBorder;
@@ -4598,31 +4626,57 @@ function library:Initialize()
                     return a.order < b.order
                 end)
 
-                local last1,last2;
-                local padding = 15;
-                for _,section in next, self.sections do
-
-                    if section.objects.background.Visible ~= (section.enabled and tab.selected) then
-                        section.objects.background.Visible = section.enabled and tab.selected
-                        section:UpdateOptions();
-                    end
-                    
-                    if section.enabled then
-                        if section.side == 1 then
-                            if last1 then
-                                section.objects.background.Position = last1.objects.background.Position + newUDim2(0,0,0,last1.objects.background.Object.Size.Y + padding);
-                            end
-                            last1 = section;
-                        elseif section.side == 2 then
-                            if last2 then
-                                section.objects.background.Position = last2.objects.background.Position + newUDim2(0,0,0,last2.objects.background.Object.Size.Y + padding);
-                            end
-                            last2 = section;
+                -- Compute total heights per column to determine max scroll
+                local padding = 15
+                local totals = {[1] = 0, [2] = 0}
+                for _, s in next, self.sections do
+                    if s.enabled then
+                        local h = s.objects.background.Object.Size.Y
+                        if totals[s.side] == 0 then
+                            totals[s.side] = h
+                        else
+                            totals[s.side] = totals[s.side] + padding + h
                         end
                     end
+                end
 
-                    section:SetText(section.text)
-                    
+                local ch1 = window.objects.columnholder1.Object
+                local ch2 = window.objects.columnholder2.Object
+                local viewHeights = {[1] = ch1.Size.Y, [2] = ch2.Size.Y}
+                window.columnMax[1] = math.max(0, totals[1] - viewHeights[1])
+                window.columnMax[2] = math.max(0, totals[2] - viewHeights[2])
+                window.columnScroll[1] = clamp(window.columnScroll[1], 0, window.columnMax[1])
+                window.columnScroll[2] = clamp(window.columnScroll[2], 0, window.columnMax[2])
+
+                -- Position sections with scroll offsets and cull visibility outside the view
+                local lastBySide = {[1] = nil, [2] = nil}
+                for _, section in next, self.sections do
+                    local shouldBeVisible = section.enabled and tab.selected
+                    if shouldBeVisible then
+                        local holderObj = section.side == 1 and ch1 or ch2
+                        local startOffsetY = -window.columnScroll[section.side]
+
+                        if lastBySide[section.side] == nil then
+                            section.objects.background.Position = newUDim2(0, 0, 0, startOffsetY)
+                        else
+                            local prev = lastBySide[section.side]
+                            local y = prev.objects.background.Position.Y.Offset + prev.objects.background.Object.Size.Y + padding
+                            section.objects.background.Position = newUDim2(0, 0, 0, y)
+                        end
+
+                        lastBySide[section.side] = section
+
+                        -- Visibility culling (hide if completely outside column viewport)
+                        local topY = section.objects.background.Position.Y.Offset
+                        local botY = topY + section.objects.background.Object.Size.Y
+                        local inView = not (botY < 0 or topY > holderObj.Size.Y)
+                        section.objects.background.Visible = inView and true or false
+                        if inView then
+                            section:SetText(section.text)
+                        end
+                    else
+                        section.objects.background.Visible = false
+                    end
                 end
             end
 
