@@ -2584,9 +2584,14 @@ function library:Initialize()
                                 end
                                 bind.callback(false);
                             end
+                            -- sanitize incoming keybind to avoid booleans/nil causing errors
                             local keyName = 'NONE'
-                            self.bind = (keybind and keybind) or keybind or self.bind
-                            if self.bind == Enum.KeyCode.Backspace then
+                            if keybind == false or keybind == nil then
+                                self.bind = 'none'
+                            else
+                                self.bind = keybind
+                            end
+                            if self.bind == Enum.KeyCode.Backspace or self.bind == 'none' then
                                 self.bind = 'none';
 
                                 if bind.flag then
@@ -2596,7 +2601,16 @@ function library:Initialize()
                                 local display = bind.state; if bind.invertindicator then display = not bind.state; end
                                 bind.indicatorValue:SetEnabled(display and not bind.noindicator);
                             else
-                                keyName = keyNames[keybind] or keybind.Name or keybind
+                                -- compute display name robustly
+                                if keyNames[keybind] then
+                                    keyName = keyNames[keybind]
+                                elseif typeof(keybind) == 'EnumItem' then
+                                    keyName = keybind.Name
+                                elseif type(keybind) == 'string' then
+                                    keyName = keybind
+                                else
+                                    keyName = tostring(keybind)
+                                end
                                 -- Conflict detection (skip when key is NONE or unbound)
                                 if self.bind ~= 'none' and tostring(keyName):upper() ~= 'NONE' then
                                     local conflict = library:FindBindConflict(self, keybind)
@@ -2638,7 +2652,8 @@ function library:Initialize()
                                 return
                             elseif bind.binding then
                                 local key = (table.find({Enum.UserInputType.MouseButton1, Enum.UserInputType.MouseButton2, Enum.UserInputType.MouseButton3}, inp.UserInputType) and not bind.nomouse) and inp.UserInputType
-                                bind:SetBind(key or (not table.find(blacklistedKeys, inp.KeyCode)) and inp.KeyCode)
+                                -- ensure we never pass boolean false to SetBind
+                                bind:SetBind(key or ((not table.find(blacklistedKeys, inp.KeyCode)) and inp.KeyCode) or nil)
                                 bind.binding = false
                             elseif not bind.binding and self.bind == 'none' then
                                 bind.state = true
@@ -4196,9 +4211,14 @@ function library:Initialize()
                             end
                             bind.callback(false);
                         end
+                        -- sanitize incoming keybind and compute name safely
                         local keyName = 'NONE'
-                        self.bind = (keybind and keybind) or keybind or self.bind
-                        if self.bind == Enum.KeyCode.Backspace then
+                        if keybind == false or keybind == nil then
+                            self.bind = 'none'
+                        else
+                            self.bind = keybind
+                        end
+                        if self.bind == Enum.KeyCode.Backspace or self.bind == 'none' then
                             self.bind = 'none';
 
                             if bind.flag then
@@ -4208,7 +4228,15 @@ function library:Initialize()
                             local display = bind.state; if bind.invertindicator then display = not bind.state; end
                             bind.indicatorValue:SetEnabled(display and not bind.noindicator);
                         else
-                            keyName = keyNames[keybind] or keybind.Name or keybind
+                            if keyNames[keybind] then
+                                keyName = keyNames[keybind]
+                            elseif typeof(keybind) == 'EnumItem' then
+                                keyName = keybind.Name
+                            elseif type(keybind) == 'string' then
+                                keyName = keybind
+                            else
+                                keyName = tostring(keybind)
+                            end
                             -- Conflict detection (skip when key is NONE or unbound)
                             if self.bind ~= 'none' and tostring(keyName):upper() ~= 'NONE' then
                                 local conflict = library:FindBindConflict(self, keybind)
@@ -4239,7 +4267,7 @@ function library:Initialize()
                             return
                         elseif bind.binding then
                             local key = (table.find({Enum.UserInputType.MouseButton1, Enum.UserInputType.MouseButton2, Enum.UserInputType.MouseButton3}, inp.UserInputType) and not bind.nomouse) and inp.UserInputType
-                            bind:SetBind(key or (not table.find(blacklistedKeys, inp.KeyCode)) and inp.KeyCode)
+                            bind:SetBind(key or ((not table.find(blacklistedKeys, inp.KeyCode)) and inp.KeyCode) or nil)
                             bind.binding = false
                         elseif not bind.binding and self.bind == 'none' then
                             bind.state = true
@@ -4267,7 +4295,7 @@ function library:Initialize()
 
                     utility:Connection(inputservice.InputEnded, function(inp)
                         if bind.bind ~= 'none' then
-                            if inp.KeyCode == bind.bind or inp.UserInputType == bind.key then
+                            if inp.KeyCode == bind.bind or inp.UserInputType == bind.bind then
                                 if c then
                                     c:Disconnect();
                                     if bind.flag then
