@@ -283,7 +283,7 @@ local keyNames = {
     [Enum.KeyCode.LeftControl] = 'LCTRL';
     [Enum.KeyCode.RightControl] = 'RCTRL';
     [Enum.KeyCode.LeftShift] = 'LSHIFT';
-    [Enum.KeyCode.RightControl] = 'RSHIFT';
+    [Enum.KeyCode.RightShift] = 'RSHIFT';
     [Enum.UserInputType.MouseButton1] = 'MB1';
     [Enum.UserInputType.MouseButton2] = 'MB2';
     [Enum.UserInputType.MouseButton3] = 'MB3';
@@ -731,7 +731,7 @@ function library:Initialize()
         screenGui:Destroy()
     end)
 
-    -- Ensure a default toggle key exists (fallback)
+    -- Ensure a default toggle key exists (fallback to RightControl)
     -- Normalize bad values like 'none' or non-KeyCode enum to use RightControl
     if self.toggleKey == nil or self.toggleKey == 'none' or tostring(self.toggleKey):lower() == 'none' then
         self.toggleKey = Enum.KeyCode.RightControl
@@ -744,16 +744,19 @@ function library:Initialize()
 
     utility:Connection(inputservice.InputBegan, function(input, gpe)
         if self.hasInit then
-            -- Always allow RightControl as a fallback toggle; ignore gpe for RightControl only
-            local isFallback = input.KeyCode == Enum.KeyCode.RightControl
-            local isCustom = (input.KeyCode == self.toggleKey)
-            if (not library.opening) and ((isCustom and not gpe) or isFallback) then
-                self:SetOpen(not self.open)
-                task.spawn(function()
-                    library.opening = true;
-                    task.wait(.15);
-                    library.opening = false;
-                end)
+            -- If a dedicated 'Open / Close' bind exists, let it handle the toggle to avoid double-triggering
+            local hasDedicatedToggleBind = library.options and library.options.togglebind ~= nil
+            -- Only handle global toggle when no dedicated bind is present
+            if not hasDedicatedToggleBind then
+                local isCustom = (input.KeyCode == self.toggleKey)
+                if isCustom and not gpe and not library.opening then
+                    self:SetOpen(not self.open)
+                    task.spawn(function()
+                        library.opening = true;
+                        task.wait(.15);
+                        library.opening = false;
+                    end)
+                end
             end
             if library.open then
                 local hoverObj = utility:GetHoverObject();
