@@ -595,7 +595,7 @@ function library:Unload()
     getgenv().library = nil
 end
 
-function library:init()
+function library:Initialize()
     if self.hasInit then
         return
     end
