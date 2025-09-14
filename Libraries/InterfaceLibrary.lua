@@ -5045,6 +5045,7 @@ getgenv().library = library
 
         -- methods (note: we map PascalCase to existing names if different)
         Unload = 'Unload',
+        Initialize = 'init',
         Init = 'init',
         CreateSettingsTab = 'CreateSettingsTab',
         SetTheme = 'SetTheme',
@@ -5057,26 +5058,14 @@ getgenv().library = library
         UpdateNotifications = 'UpdateNotifications',
         FindBindConflict = 'FindBindConflict',
         NewWindow = 'NewWindow',
+        NewIndicator = 'NewIndicator',
      }
 
-     -- classify functions to preserve calling conventions
-     local methodFuncs = {
-         Unload = true,
-         Init = true,
-         CreateSettingsTab = true,
-         SetTheme = true,
-         GetConfig = true,
-         LoadConfig = true,
-         SaveConfig = true,
-         SetOpen = true,
-         SendNotification = true,
-         UpdateThemeColors = true,
-         UpdateNotifications = true,
-         FindBindConflict = true,
-     }
-     local staticFuncs = {
-         NewWindow = true,
-     }
+     -- classify static functions to preserve calling conventions
+    local staticFuncs = {
+        NewWindow = true,
+        NewIndicator = true,
+    }
 
      local LibraryProxy
      LibraryProxy = setmetatable({}, {
